@@ -1,6 +1,7 @@
 version: '3.7'
 services:
   open-resume:
-    image: 'itsnoted/open-resume:latest'
+    image: 'peppershade/open-resume:latest'
+    restart: on-failure:5
     ports:
       - '3003:3000'
