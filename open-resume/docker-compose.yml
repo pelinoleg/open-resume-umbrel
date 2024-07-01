@@ -1,12 +1,109 @@
-version: "3.9"
+version: "3.8"
+
+# В этом Docker Compose примере предполагается, что вы используете реверс-прокси или решили не использовать его.
+# Единственные два открытых порта здесь - от minio (:9000) и самого приложения (:8080).
+# Если эти порты изменены, убедитесь, что env vars, переданные приложению, также изменены соответствующим образом.
+
 services:
-  openresume:
-    container_name: OpenResume
-    image: peppershade/open-resume:latest
-    mem_limit: 2g
-    cpu_shares: 768
-    security_opt:
-      - no-new-privileges:true
-    restart: on-failure:5
+  # Database (Postgres)
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    volumes:
+      - /home/umbrel/umbrel/data/storage/reactive-resume/postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Storage (for image uploads)
+  minio:
+    image: minio/minio
+    restart: unless-stopped
+    command: server /data
     ports:
-      - 6155:3000
+      - 9000:9000
+    volumes:
+      - /home/umbrel/umbrel/data/storage/reactive-resume/minio_data:/data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+
+  # Chrome Browser (for printing and previews)
+  chrome:
+    image: browserless/chrome:1.61.0-puppeteer-21.4.1
+    restart: unless-stopped
+    environment:
+      TOKEN: chrome_token
+      EXIT_ON_HEALTH_FAILURE: true
+      PRE_REQUEST_HEALTH_CHECK: true
+
+  # Redis (for cache & server session management)
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    command: redis-server --requirepass password
+
+  app:
+    image: amruthpillai/reactive-resume:latest
+    restart: unless-stopped
+    ports:
+      - 8081:80
+    depends_on:
+      - postgres
+      - minio
+      - redis
+      - chrome
+    environment:
+      # -- Environment Variables --
+      PORT: 80
+      NODE_ENV: production
+
+      # -- URLs --
+      PUBLIC_URL: http://localhost:8080
+      STORAGE_URL: http://localhost:9000/default
+
+      # -- Printer (Chrome) --
+      CHROME_TOKEN: chrome_token
+      CHROME_URL: ws://chrome:3000
+
+      # -- Database (Postgres) --
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+
+      # -- Auth --
+      ACCESS_TOKEN_SECRET: access_token_secret
+      REFRESH_TOKEN_SECRET: refresh_token_secret
+
+      # -- Emails --
+      MAIL_FROM: noreply@localhost
+      # SMTP_URL: smtp://user:pass@smtp:587 # Optional
+
+      # -- Storage (Minio) --
+      STORAGE_ENDPOINT: minio
+      STORAGE_PORT: 9000
+      STORAGE_REGION: us-east-1 # Optional
+      STORAGE_BUCKET: default
+      STORAGE_ACCESS_KEY: minioadmin
+      STORAGE_SECRET_KEY: minioadmin
+      STORAGE_USE_SSL: false
+
+      # -- Cache (Redis) --
+      REDIS_URL: redis://default:password@redis:6379
+
+      GITHUB_CLIENT_ID: github_client_id
+      GITHUB_CLIENT_SECRET: github_client_secret
+      GITHUB_CALLBACK_URL: http://localhost:8080/api/auth/github/callback
+
+      # -- Google (Optional) --
+      GOOGLE_CLIENT_ID: google_client_id
+      GOOGLE_CLIENT_SECRET: google_client_secret
+      GOOGLE_CALLBACK_URL: http://localhost:8080/api/auth/google/callback
+
+volumes:
+  minio_data:
+  postgres_data:
