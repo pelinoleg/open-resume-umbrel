@@ -1,0 +1,27 @@
+manifestVersion: 1
+id: open-resume
+name: Open Resume
+tagline: Open Resume
+icon: https://svgshare.com/i/17nR.svg
+category: music
+version: "1.0.0"
+port: 3000
+description: >-
+  Create a professional resume easily
+
+developer: Pelin Oleg
+website: https://github.com/pelinoleg/open-resume-umbrel
+submitter: Pelin Oleg
+submission: https://github.com/pelinoleg/open-resume-umbrel
+repo: https://github.com/pelinoleg/open-resume-umbrel
+support: https://github.com/pelinoleg/open-resume-umbrel/issues
+
+gallery:
+  - https://opengraph.githubassets.com/3cf35c701272796d02d1210f2afe0031e4e5bc4c3e5f153f512f6209b7046f5e/xitanggg/open-resume
+
+releaseNotes: >-
+  Initial release of Open Resume on Umbrel.
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
